@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from google import genai
 import sys
+from google.genai import types
 
 
 
@@ -17,14 +18,21 @@ def main():
         sys.exit(1)
 
     prompt = " ".join(arguments)
+    messages = [
+    types.Content(role="user", parts=[types.Part(text=prompt)]),]
 
+    generate_content(client,messages)
+
+
+def generate_content(client, messages):
     response = client.models.generate_content(
-    model='gemini-2.0-flash-001', contents=prompt
+        model='gemini-2.0-flash-001',
+        contents=messages,
     )
-
     print(response.text)
     print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
     print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+
 
 if __name__ == "__main__":
     main()
