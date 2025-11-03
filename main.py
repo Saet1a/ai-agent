@@ -5,6 +5,7 @@ import sys
 from google.genai import types
 from prompts import system_prompt
 from call_function import available_functions
+from call_function import call_function
 
 def main():
     load_dotenv()
@@ -50,7 +51,14 @@ def generate_content(client,messages,verbose):
         return response.text
 
     for call in response.function_calls:
-        print(f"Calling function: {call.name}({call.args})")
+        function_call_result = call_function(call, verbose)
+
+
+        if not function_call_result.parts or not getattr(function_call_result.parts[0], "function_response", None) or function_call_result.parts[0].function_response.response is None:
+            raise RuntimeError("Function call did not return a valid function_response.response")
+
+        if verbose:
+            print(f"-> {function_call_result.parts[0].function_response.response}")
 
 
 
