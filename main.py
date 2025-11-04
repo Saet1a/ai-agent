@@ -49,13 +49,10 @@ def generate_content(client, messages, verbose):
                 print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
                 print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
 
-            # Add the model's response to the conversation history
             if response.candidates:
                 for candidate in response.candidates:
                     messages.append(candidate.content)
 
-            # --- START FIX ---
-            # **Priority 1: Check for and process function calls.**
             if response.function_calls:
                 for call in response.function_calls:
                     function_call_result = call_function(call, verbose)
@@ -66,23 +63,17 @@ def generate_content(client, messages, verbose):
                     if verbose:
                         print(f"-> {function_call_result.parts[0].function_response.response}")
                     
-                    # Add the function call result to the conversation history
                     messages.append(function_call_result)
-                
-                # After processing all calls, continue to the next loop iteration
-                # to send the function results back to the model.
+
                 continue
 
-            # **Priority 2: If no function calls, check for a final text response.**
             if response.text:
                 print(f"Final response:\n{response.text}")
-                break # We are done
+                break 
 
-            # **Priority 3: Handle unexpected state (no text, no calls).**
             if not response.text and not response.function_calls:
                 print("Warning: Model returned no text and no function calls.")
                 break
-            # --- END FIX ---
 
         except Exception as e:
             print(f"An error occurred: {e}")
