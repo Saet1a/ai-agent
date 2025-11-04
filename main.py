@@ -34,32 +34,61 @@ def main():
     generate_content(client,messages,verbose)
 
 
-def generate_content(client,messages,verbose):
-    response = client.models.generate_content(
-        model='gemini-2.0-flash-001',
-        contents=messages,
-        config=types.GenerateContentConfig(
-            tools=[available_functions],system_instruction=system_prompt),
+def generate_content(client, messages, verbose):
+    max_iterations = 20
+    for _ in range(max_iterations):
+        try:
+            response = client.models.generate_content(
+                model='gemini-2.0-flash-001',
+                contents=messages,
+                config=types.GenerateContentConfig(
+                    tools=[available_functions], system_instruction=system_prompt),
+            )
 
-    )
+            if verbose:
+                print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+                print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
 
-    if verbose:
-        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+            # Add the model's response to the conversation history
+            if response.candidates:
+                for candidate in response.candidates:
+                    messages.append(candidate.content)
 
-    if not response.function_calls:
-        return response.text
+            # --- START FIX ---
+            # **Priority 1: Check for and process function calls.**
+            if response.function_calls:
+                for call in response.function_calls:
+                    function_call_result = call_function(call, verbose)
 
-    for call in response.function_calls:
-        function_call_result = call_function(call, verbose)
+                    if not function_call_result.parts or not getattr(function_call_result.parts[0], "function_response", None) or function_call_result.parts[0].function_response.response is None:
+                        raise RuntimeError("Function call did not return a valid function_response.response")
 
+                    if verbose:
+                        print(f"-> {function_call_result.parts[0].function_response.response}")
+                    
+                    # Add the function call result to the conversation history
+                    messages.append(function_call_result)
+                
+                # After processing all calls, continue to the next loop iteration
+                # to send the function results back to the model.
+                continue
 
-        if not function_call_result.parts or not getattr(function_call_result.parts[0], "function_response", None) or function_call_result.parts[0].function_response.response is None:
-            raise RuntimeError("Function call did not return a valid function_response.response")
+            # **Priority 2: If no function calls, check for a final text response.**
+            if response.text:
+                print(f"Final response:\n{response.text}")
+                break # We are done
 
-        if verbose:
-            print(f"-> {function_call_result.parts[0].function_response.response}")
+            # **Priority 3: Handle unexpected state (no text, no calls).**
+            if not response.text and not response.function_calls:
+                print("Warning: Model returned no text and no function calls.")
+                break
+            # --- END FIX ---
 
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            break
+    else:
+        print("Maximum iterations reached. Exiting.")
 
 
 if __name__ == "__main__":
