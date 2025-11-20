@@ -44,8 +44,8 @@ A lightweight, autonomous coding agent built with Python 3.13 and the **Google G
     GEMINI_API_KEY=your_actual_api_key_here
     ```
 
-# Warning ⚠️: 
-Experimental Project This tool allows an AI to execute code and modify files on your local machine. It is designed for educational purposes and does not implement full production-grade sandboxing (e.g., Docker containers).
+# Warning ⚠️: Experimental Project 
+This tool allows an AI to execute code and modify files on your local machine. It is designed for educational purposes and does not implement full production-grade sandboxing (e.g., Docker containers).
 
 Do not run this outside of a controlled directory.
 
